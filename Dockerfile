@@ -1,7 +1,7 @@
 # Stage 1: Builder - Install dependencies
 # Use an AWS provided base image matching your target Lambda Runtime & Architecture.
 # Using Python 3.11 on x86_64 as an example. Change if your Lambda uses arm64 or a different Python version.
-FROM public.ecr.aws/lambda/python:3.11-x86_64 as builder
+FROM public.ecr.aws/lambda/python:3.11 as builder
 
 # Set the working directory inside the builder stage
 WORKDIR /build
@@ -24,7 +24,8 @@ RUN pip install -r requirements.txt --target ./lambda_packages
 
 # Stage 2: Final Lambda Image
 # Use the same base image as the builder for consistency
-FROM public.ecr.aws/lambda/python:3.11-x86_64
+FROM public.ecr.aws/lambda/python:3.11
+
 
 # Set the working directory for the Lambda function code
 WORKDIR ${LAMBDA_TASK_ROOT}
