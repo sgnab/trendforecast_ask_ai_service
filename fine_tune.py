@@ -22,21 +22,21 @@ client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY=")) # Use env var
 #   # Add optional suffix for your custom model name
 # )
 # print(f"Fine-tuning Job ID: {job.id}")
-#
+
 # # # client.fine_tuning.jobs.list(limit=10)
 # job_details=client.fine_tuning.jobs.list(limit=10)
-# job_details=client.fine_tuning.jobs.retrieve("ftjob-C4fPwE9G28EANQw11pDdBnQx")
-#
-#
-# print(job_details)
+job_details=client.fine_tuning.jobs.retrieve("ftjob-fUwnsYpcgOLFSMCqnQziWKUX")
+# #
+# #
+print(job_details)
 
-completion = client.chat.completions.create(
-    model="ft:gpt-4o-mini-2024-07-18:personal::BRVEMBZL",
-    messages=[
-        {"role": "system", "content": "You are a helpful assistant."},
-        {"role": "user", "content": "what is mega demands feature?!"}
-    ]
-)
-
-print(completion.choices[0].message)
+# completion = client.chat.completions.create(
+#     model="ft:gpt-4o-mini-2024-07-18:personal::BSXLgDMa",
+#     messages=[
+#         {"role": "system", "content": "You are a helpful assistant."},
+#         {"role": "user", "content": "what is mega demands feature?!"}
+#     ]
+# )
+#
+# print(completion.choices[0].message)
 
