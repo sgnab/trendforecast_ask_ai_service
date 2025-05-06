@@ -857,17 +857,17 @@ STYLES_CSV = CONFIG_DIR / "styles.csv"
 COLORS_CSV = CONFIG_DIR / "colors.csv"
 
 SECRET_NAME = os.environ.get("SECRET_NAME", "YourGeminiSecretName")
-LLM_MODEL_NAME = os.environ.get("INTERPRET_LLM_MODEL", "gemini-2.5-flash-preview-04-17")
+LLM_MODEL_NAME = os.environ.get("INTERPRET_LLM_MODEL", "gemini-2.5-flash-preview-04-17") # Reverted to this as per your code
 AWS_REGION = os.environ.get("AWS_REGION", "us-west-2")
 
 # --- Constants for Special Tasks ---
-BRAND_ANALYSIS_CATEGORY = "BRAND_ANALYSIS" # Placeholder category name
-INTERNAL_BRAND_PERFORMANCE_SOURCE = "internal_brand_performance" # New source
-ANALYZE_BRAND_TASK = "analyze_brand_deep_dive" # New task name
+BRAND_ANALYSIS_CATEGORY = "BRAND_ANALYSIS"
+INTERNAL_BRAND_PERFORMANCE_SOURCE = "internal_brand_performance"
+ANALYZE_BRAND_TASK = "analyze_brand_deep_dive"
 
-AMAZON_RADAR_CATEGORY = "AMAZON_RADAR" # New placeholder
-INTERNAL_AMAZON_RADAR_SOURCE = "internal_amazon_radar" # New source
-SUMMARIZE_AMAZON_TASK = "summarize_amazon_radar" # New task
+AMAZON_RADAR_CATEGORY = "AMAZON_RADAR"
+INTERNAL_AMAZON_RADAR_SOURCE = "internal_amazon_radar"
+SUMMARIZE_AMAZON_TASK = "summarize_amazon_radar"
 
 # --- Logger Setup ---
 logger = logging.getLogger()
@@ -879,14 +879,12 @@ logger.info(f"Logger initialized with level: {log_level_str}")
 logger.info(f"Using Interpreter LLM: {LLM_MODEL_NAME}")
 
 # --- Globals & Config Loading ---
-KNOWN_CATEGORIES: Set[str] = set() # For standard product analysis
+KNOWN_CATEGORIES: Set[str] = set()
 KNOWN_STYLES: Set[str] = set()
 KNOWN_COLORS: Set[str] = set()
 CONFIG_LOAD_ERROR: Optional[str] = None
 
-# --- Data for Amazon Radar Validation ---
-VALID_DEPARTMENTS = ["Men", "Women", "Kids", "Fashion", "Beauty"] # Case-insensitive check later
-# Store department categories in a dict for lookup - store lowercase
+VALID_DEPARTMENTS = ["Men", "Women", "Kids", "Fashion", "Beauty"]
 CATEGORIES_BY_DEPARTMENT = {
     "men": {'suits', 'formal shoes', 'cufflinks', 'neckties', 'golf apparel', 'belts', 'wallets', 't-shirts', 'jeans', 'jackets', 'hoodies', 'sneakers', 'socks', 'underwear', 'sweaters', 'shorts', 'pajamas', 'swimwear', 'hats', 'gloves', 'scarves', 'slippers', 'backpacks', 'raincoats', 'sunglasses', 'sportswear', 'sandals', 'boots', 'bags', 'watches', 'necklaces', 'bracelets', 'earrings', 'rings', 'shirts', 'pants', 'blouses', 'beachwear'},
     "women": {'dresses', 'skirts', 'heels', 'jewelry sets', 'handbags', 'bras', 'leggings', 'top tanks', 'jumpsuits', 'bikinis', 't-shirts', 'jeans', 'jackets', 'hoodies', 'sneakers', 'socks', 'underwear', 'sweaters', 'shorts', 'pajamas', 'swimwear', 'hats', 'gloves', 'scarves', 'slippers', 'backpacks', 'raincoats', 'sunglasses', 'sportswear', 'sandals', 'boots', 'bags', 'watches', 'necklaces', 'bracelets', 'earrings', 'rings', 'shirts', 'pants', 'blouses', 'beachwear'},
@@ -895,14 +893,11 @@ CATEGORIES_BY_DEPARTMENT = {
     "beauty": {'makeup', 'skincare', 'haircare', 'perfumes', 'nail polish', 'lipstick', 'mascara'}
 }
 
-
 def load_config_csvs():
-    # Loads KNOWN_CATEGORIES, KNOWN_STYLES, KNOWN_COLORS from CSVs
     global KNOWN_CATEGORIES, KNOWN_STYLES, KNOWN_COLORS, CONFIG_LOAD_ERROR
     logger.info(f"Attempting to load config data from: {CONFIG_DIR}")
     KNOWN_CATEGORIES.clear(); KNOWN_STYLES.clear(); KNOWN_COLORS.clear(); CONFIG_LOAD_ERROR = None
     try:
-        # Categories (for standard product/category analysis)
         if not CATEGORIES_CSV.is_file(): raise FileNotFoundError(f"Categories CSV not found at {CATEGORIES_CSV}")
         with open(CATEGORIES_CSV, mode='r', encoding='utf-8-sig') as infile:
             reader = csv.reader(infile); header = next(reader); logger.debug(f"Categories CSV header: {header}"); count = 0
@@ -910,7 +905,6 @@ def load_config_csvs():
                 if row and row[0].strip(): KNOWN_CATEGORIES.add(row[0].strip().lower()); count += 1
             logger.info(f"Loaded {count} standard categories.")
             if count == 0: logger.warning(f"'{CATEGORIES_CSV.name}' contained no data rows.")
-        # Styles
         if STYLES_CSV.is_file():
             with open(STYLES_CSV, mode='r', encoding='utf-8-sig') as infile:
                 reader = csv.reader(infile); header = next(reader); logger.debug(f"Styles CSV header: {header}"); count = 0
@@ -921,7 +915,6 @@ def load_config_csvs():
                 logger.info(f"Loaded {count} unique styles.")
                 if count == 0: logger.warning(f"'{STYLES_CSV.name}' contained no data rows.")
         else: logger.warning(f"Styles CSV not found at {STYLES_CSV}, style checking unavailable.")
-        # Colors
         if COLORS_CSV.is_file():
              with open(COLORS_CSV, mode='r', encoding='utf-8-sig') as infile:
                 reader = csv.reader(infile); header = next(reader); logger.debug(f"Colors CSV header: {header}"); count = 0
@@ -934,26 +927,19 @@ def load_config_csvs():
         else: logger.warning(f"Colors CSV not found at {COLORS_CSV}, color checking unavailable.")
     except FileNotFoundError as e: logger.error(f"Config loading failed: {e}"); CONFIG_LOAD_ERROR = str(e)
     except Exception as e: logger.exception("CRITICAL ERROR loading config CSVs!"); CONFIG_LOAD_ERROR = f"Unexpected error loading config CSVs: {e}"
-    logger.debug(f"Final loaded category count: {len(KNOWN_CATEGORIES)}")
-    logger.debug(f"Final loaded style count: {len(KNOWN_STYLES)}")
-    logger.debug(f"Final loaded color count: {len(KNOWN_COLORS)}")
 
 load_config_csvs()
 
-# --- Boto3 Client & Secret Handling ---
 secrets_manager = None
 BOTO3_CLIENT_ERROR = None
 try:
     session = boto3.session.Session()
     secrets_manager = session.client(service_name='secretsmanager', region_name=AWS_REGION)
 except Exception as e:
-    logger.exception("CRITICAL ERROR initializing Boto3 client!")
-    BOTO3_CLIENT_ERROR = f"Failed to initialize Boto3 client: {e}"
+    logger.exception("CRITICAL ERROR initializing Boto3 client!"); BOTO3_CLIENT_ERROR = f"Failed to initialize Boto3 client: {e}"
 
 API_KEY_CACHE: Dict[str, Optional[str]] = {}
-
 def get_secret_value(secret_name: str, key_name: str) -> Optional[str]:
-    # (Keep existing get_secret_value function as is)
     is_local = os.environ.get("IS_LOCAL", "false").lower() == "true"
     if is_local:
         direct_key = os.environ.get(key_name)
@@ -984,103 +970,87 @@ def get_secret_value(secret_name: str, key_name: str) -> Optional[str]:
     except Exception as e:
         logger.exception(f"Unexpected error retrieving secret '{secret_name}'."); API_KEY_CACHE[cache_key] = None; return None
 
-# --- Brand Extraction Helper ---
 def extract_brand_from_query(query: str) -> Optional[str]:
-    # (Keep existing extract_brand_from_query function as is)
     if not query or not isinstance(query, str): return None
     query_lower = query.lower()
-    domain_match = re.search(r'([\w-]+\.[a-z]{2,})', query_lower)
+    domain_match = re.search(r'([\w-]+\.[a-z]{2,}(\.[a-z]{2})?)', query_lower) # Improved to catch .co.uk etc.
     if domain_match:
         cleaned = clean_domain_for_lookup(domain_match.group(1))
         if cleaned: logger.info(f"Extracted domain: {cleaned}"); return cleaned
-    brand_keywords = ["analyze brand", "brand analysis", "competitors for", "tell me about", "analyze", "brand"]
-    target_brand = None
+    brand_keywords = ["analyze brand", "brand analysis of", "competitors for", "tell me about brand", "brand profile for", "brand overview for", "brand insights for", "brand", "analyze"]
+    # Try to find the brand name after specific keywords
     for keyword in brand_keywords:
         if keyword in query_lower:
-            potential_brand = query_lower.split(keyword, 1)[-1].strip()
-            potential_brand = re.sub(r"^[^\w]+|[^\w]+$", "", potential_brand)
-            if potential_brand and len(potential_brand) > 1 and len(potential_brand) < 50:
-                 target_brand = " ".join(potential_brand.split()[:3])
-                 logger.info(f"Extracted potential brand keyword: {target_brand}")
-                 break
-    if target_brand:
-         if target_brand.endswith('.com'): target_brand = target_brand[:-4]
-         return target_brand.strip()
+            # Extract text after keyword, clean it up
+            potential_brand_segment = query_lower.split(keyword, 1)[-1].strip()
+            # Remove common leading/trailing words that are not part of brand
+            potential_brand_segment = re.sub(r'^(the\s+)?', '', potential_brand_segment, flags=re.IGNORECASE)
+            potential_brand_segment = re.sub(r'\s+in\s+.*$', '', potential_brand_segment, flags=re.IGNORECASE) # Remove " in country"
+            potential_brand_segment = re.sub(r'\s+performance$', '', potential_brand_segment, flags=re.IGNORECASE)
+            potential_brand_segment = re.sub(r"^[^\w(@.)]+|[^\w(@.)]+$", "", potential_brand_segment) # More permissive punctuation removal
+            # Take first few words, assuming brand names are not extremely long
+            target_brand_words = potential_brand_segment.split()
+            if target_brand_words:
+                # Try to reconstruct a plausible brand name (e.g., up to 3 words)
+                for i in range(min(3, len(target_brand_words)), 0, -1):
+                    brand_candidate = " ".join(target_brand_words[:i])
+                    if len(brand_candidate) > 1: # Simple check for some substance
+                         logger.info(f"Extracted potential brand keyword: {brand_candidate} from segment '{potential_brand_segment}'")
+                         return brand_candidate.strip()
     logger.warning(f"Could not extract brand/domain from query: {query}"); return None
 
 def clean_domain_for_lookup(input_domain: str) -> str:
-    # (Keep existing clean_domain_for_lookup function as is)
     if not isinstance(input_domain, str): return ""
     cleaned = re.sub(r'^https?:\/\/', '', input_domain.strip(), flags=re.IGNORECASE)
     cleaned = re.sub(r'^www\.', '', cleaned, flags=re.IGNORECASE)
     if cleaned.endswith('/'): cleaned = cleaned[:-1]
     return cleaned.lower()
 
-# --- *** MODIFICATION START: Helper for Amazon Radar Params *** ---
 def extract_amazon_params(query: str) -> Dict[str, Optional[str]]:
-    """
-    Extracts Department and Category for Amazon Radar requests.
-    Very basic implementation, likely needs refinement.
-    """
     params = {"department": None, "target_category": None}
-    if not query or not isinstance(query, str):
-        return params
-    query_lower = query.lower()
-    original_query = query # Keep original casing for potential extraction
-
-    # 1. Find Department
+    if not query or not isinstance(query, str): return params
+    query_lower = query.lower(); original_query = query
     found_dept_orig_case = None
-    dept_keywords = [" department", " for men", " for women", " for kids", " fashion", " beauty"] # Look for specific context
+    dept_keywords = [" department", " for men", " for women", " for kids", " fashion", " beauty"]
     dept_map = {"men": "Men", "women": "Women", "kids": "Kids", "fashion": "Fashion", "beauty": "Beauty"}
-
-    # Try specific keywords first
     for keyword in dept_keywords:
         if keyword in query_lower:
              dept_key = keyword.split(" for ")[-1].strip() if " for " in keyword else keyword.strip()
              if dept_key in dept_map:
-                  found_dept_orig_case = dept_map[dept_key]
-                  params["department"] = found_dept_orig_case
-                  logger.info(f"Found department '{found_dept_orig_case}' using keyword '{keyword}'")
-                  break
-
-    # If not found via keywords, check for direct mention
+                  found_dept_orig_case = dept_map[dept_key]; params["department"] = found_dept_orig_case
+                  logger.info(f"Found department '{found_dept_orig_case}' using keyword '{keyword}'"); break
     if not found_dept_orig_case:
         for dept_val in VALID_DEPARTMENTS:
-             # Use word boundaries to avoid partial matches (e.g., "mention" vs "men")
              if re.search(r'\b' + re.escape(dept_val.lower()) + r'\b', query_lower):
-                  params["department"] = dept_val # Use original casing
-                  found_dept_orig_case = dept_val
-                  logger.info(f"Found department '{found_dept_orig_case}' via direct mention.")
-                  break
-
-    if not found_dept_orig_case:
-        logger.warning("Could not determine department for Amazon Radar.")
-        return params # Cannot find category without department
-
-    # 2. Find Category (within the detected department)
+                  params["department"] = dept_val; found_dept_orig_case = dept_val
+                  logger.info(f"Found department '{found_dept_orig_case}' via direct mention."); break
+    if not found_dept_orig_case: logger.warning("Could not determine department for Amazon Radar."); return params
     dept_key_lower = found_dept_orig_case.lower()
     if dept_key_lower in CATEGORIES_BY_DEPARTMENT:
         possible_categories = CATEGORIES_BY_DEPARTMENT[dept_key_lower]
-        best_match_cat = None
-        # Search for known category names within the query
         for cat_lower in possible_categories:
-            # Use word boundaries for better matching
-            pattern = re.compile(r'\b' + re.escape(cat_lower) + r'\b', re.IGNORECASE)
-            match = pattern.search(original_query) # Search in original case query
+            pattern = re.compile(r'\b' + re.escape(cat_lower.replace('-', r'\-')) + r'\b', re.IGNORECASE) # Escape hyphens
+            match = pattern.search(original_query)
             if match:
-                # Found a potential match, use the originally cased version
-                # This assumes the stored known categories are lowercase, need Title case output
-                # A better approach might involve mapping lowercase back to original TitleCase from a list
-                params["target_category"] = cat_lower.title() # Simple title case for now
-                logger.info(f"Found category '{params['target_category']}' for department '{found_dept_orig_case}'.")
-                break # Take the first match found
+                # Find original casing from a master list or use title case
+                original_case_category = next((c for c_list in CATEGORIES_BY_DEPARTMENT.values() for c in c_list if c.lower() == cat_lower), cat_lower.title())
+                # Find the title cased version from the original VALID_DEPARTMENTS lists
+                # This is a bit convoluted; ideally, have a direct mapping for original casing if needed elsewhere
+                title_cased_cat = cat_lower.title() # Fallback
+                for dept_cat_list in CATEGORIES_BY_DEPARTMENT.values():
+                    for known_cat_in_list in dept_cat_list: # These are already lowercase
+                        if known_cat_in_list == cat_lower: # Found the lowercase
+                            # Find the original cased version (requires iterating main Known lists or having original case map)
+                            # For simplicity, let's assume title case from the lowercase is acceptable.
+                             title_cased_cat = cat_lower.title()
+                             break
+                    if title_cased_cat != cat_lower.title(): break
 
-    if not params["target_category"]:
-         logger.warning(f"Could not determine category for Amazon Radar (Dept: {found_dept_orig_case}).")
 
+                params["target_category"] = title_cased_cat
+                logger.info(f"Found category '{params['target_category']}' for department '{found_dept_orig_case}'."); break
+    if not params["target_category"]: logger.warning(f"Could not determine category for Amazon Radar (Dept: {found_dept_orig_case}).")
     return params
-# --- *** MODIFICATION END: Helper for Amazon Radar Params *** ---
-
 
 # --- Main Lambda Handler ---
 def lambda_handler(event, context):
@@ -1089,7 +1059,6 @@ def lambda_handler(event, context):
     if not GEMINI_SDK_AVAILABLE: return {"statusCode": 500, "body": json.dumps({"status": "error", "error_message": "Gemini SDK unavailable."})}
 
     logger.info(f"Received event: {json.dumps(event)}")
-
     try:
         if isinstance(event.get('body'), str): body = json.loads(event['body']); logger.debug("Parsed body from API GW event.")
         elif isinstance(event, dict) and 'query' in event and 'category' in event and 'country' in event: body = event; logger.debug("Using direct event payload.")
@@ -1100,144 +1069,216 @@ def lambda_handler(event, context):
     except (json.JSONDecodeError, ValueError, TypeError) as e:
         logger.error(f"Request parsing error: {e}"); return {"statusCode": 400, "body": json.dumps({"status": "error", "error_message": f"Invalid input: {e}"})}
 
-    # --- Route based on Placeholder Category ---
     category_upper = category.upper() if isinstance(category, str) else ""
+    original_context_payload = {'category': category, 'country': country, 'query': user_query} # Base for all paths
 
     # 1. Handle BRAND_ANALYSIS
     if category_upper == BRAND_ANALYSIS_CATEGORY:
         logger.info(f"Detected '{BRAND_ANALYSIS_CATEGORY}' category...")
         extracted_brand = extract_brand_from_query(user_query)
+        original_context_payload['target_brand'] = extracted_brand # Add to context
         if extracted_brand:
-            output_payload = { # Build payload directly
-                "status": "success", "primary_task": ANALYZE_BRAND_TASK,
-                "required_sources": [INTERNAL_BRAND_PERFORMANCE_SOURCE, "web_search"],
-                "query_subjects": {"specific_known": [], "unmapped_items": [], "target_brand": extracted_brand},
-                "timeframe_reference": None, "attributes": [], "clarification_needed": None,
-                "original_context": {'category': category, 'country': country, 'query': user_query, 'target_brand': extracted_brand}
-            }
+            output_payload = {"status": "success", "primary_task": ANALYZE_BRAND_TASK, "required_sources": [INTERNAL_BRAND_PERFORMANCE_SOURCE, "web_search"], "query_subjects": {"specific_known": [], "unmapped_items": [], "target_brand": extracted_brand}, "timeframe_reference": None, "attributes": [], "clarification_needed": None, "original_context": original_context_payload}
             logger.info("Bypassing LLM. Returning direct payload for Brand Analysis.")
             return {"statusCode": 200, "body": json.dumps(output_payload)}
-        else: # Clarification needed for brand
-            output_payload = {
-                "status": "needs_clarification", "primary_task": "unknown", "required_sources": ["clarify"],
-                "query_subjects": {"specific_known": [], "unmapped_items": []}, "timeframe_reference": None, "attributes": [],
-                "clarification_needed": "Please specify the brand name or website you want to analyze.",
-                "original_context": {'category': category, 'country': country, 'query': user_query}
-            }
+        else:
+            output_payload = {"status": "needs_clarification", "primary_task": "unknown", "required_sources": ["clarify"], "query_subjects": {"specific_known": [], "unmapped_items": []}, "timeframe_reference": None, "attributes": [], "clarification_needed": "Please specify the brand name or website for analysis.", "original_context": original_context_payload}
             return {"statusCode": 200, "body": json.dumps(output_payload)}
 
-    # --- *** MODIFICATION START: Handle AMAZON_RADAR *** ---
     # 2. Handle AMAZON_RADAR
     elif category_upper == AMAZON_RADAR_CATEGORY:
         logger.info(f"Detected '{AMAZON_RADAR_CATEGORY}' category...")
         amazon_params = extract_amazon_params(user_query)
-        target_dept = amazon_params.get("department")
-        target_cat = amazon_params.get("target_category")
-
+        target_dept = amazon_params.get("department"); target_cat = amazon_params.get("target_category")
+        original_context_payload['target_department'] = target_dept; original_context_payload['target_category'] = target_cat
         clarification_msg = None
-        if not target_dept:
-             clarification_msg = "Which department do you want Amazon Radar insights for (e.g., Men, Women, Kids, Fashion, Beauty)?"
-        elif not target_cat:
-             clarification_msg = f"Which category within the '{target_dept}' department do you want Amazon Radar insights for?"
+        if not target_dept: clarification_msg = "Which department for Amazon Radar (e.g., Men, Women, Kids, Fashion, Beauty)?"
+        elif not target_cat: clarification_msg = f"Which category within '{target_dept}' for Amazon Radar?"
         else:
-            # Validate category against department list
             dept_key_lower = target_dept.lower()
-            if dept_key_lower not in CATEGORIES_BY_DEPARTMENT or \
-               target_cat.lower() not in CATEGORIES_BY_DEPARTMENT[dept_key_lower]:
-                 logger.warning(f"Extracted category '{target_cat}' is not valid for department '{target_dept}'.")
-                 clarification_msg = f"The category '{target_cat}' isn't valid for the '{target_dept}' department on Amazon Radar. Please specify a valid category for {target_dept}."
-
+            if dept_key_lower not in CATEGORIES_BY_DEPARTMENT or target_cat.lower() not in CATEGORIES_BY_DEPARTMENT[dept_key_lower]:
+                 clarification_msg = f"Category '{target_cat}' is not valid for '{target_dept}' on Amazon Radar. Please specify a valid category for {target_dept}."
         if clarification_msg:
-             # Return clarification
-             output_payload = {
-                 "status": "needs_clarification", "primary_task": "unknown", "required_sources": ["clarify"],
-                 "query_subjects": {"specific_known": [], "unmapped_items": []}, "timeframe_reference": None, "attributes": [],
-                 "clarification_needed": clarification_msg,
-                 "original_context": {'category': category, 'country': country, 'query': user_query}
-             }
+             output_payload = {"status": "needs_clarification", "primary_task": "unknown", "required_sources": ["clarify"], "query_subjects": {"specific_known": [], "unmapped_items": []}, "timeframe_reference": None, "attributes": [], "clarification_needed": clarification_msg, "original_context": original_context_payload}
              return {"statusCode": 200, "body": json.dumps(output_payload)}
         else:
-             # Valid params extracted, build direct output
-             logger.info(f"Extracted valid Amazon params: Dept='{target_dept}', Cat='{target_cat}'")
-             output_payload = {
-                 "status": "success",
-                 "primary_task": SUMMARIZE_AMAZON_TASK,
-                 "required_sources": [INTERNAL_AMAZON_RADAR_SOURCE], # Only internal source needed
-                 "query_subjects": {"specific_known": [], "unmapped_items": []},
-                 "timeframe_reference": None, "attributes": [], "clarification_needed": None,
-                 "original_context": {
-                     'category': category, 'country': country, 'query': user_query,
-                     'target_department': target_dept, 'target_category': target_cat
-                 }
-             }
+             logger.info(f"Valid Amazon params: Dept='{target_dept}', Cat='{target_cat}'")
+             output_payload = {"status": "success", "primary_task": SUMMARIZE_AMAZON_TASK, "required_sources": [INTERNAL_AMAZON_RADAR_SOURCE], "query_subjects": {"specific_known": [], "unmapped_items": []}, "timeframe_reference": None, "attributes": [], "clarification_needed": None, "original_context": original_context_payload}
              logger.info("Bypassing LLM. Returning direct payload for Amazon Radar.")
              return {"statusCode": 200, "body": json.dumps(output_payload)}
-    # --- *** MODIFICATION END: Handle AMAZON_RADAR *** ---
 
-    # 3. Handle Standard Interpretation (Existing Logic)
+    # 3. Handle Standard Interpretation
     else:
-        logger.info("Category is not a known placeholder. Proceeding with standard LLM interpretation.")
-        # --- Secret Retrieval ---
+        logger.info("Category is not a placeholder. Proceeding with standard LLM interpretation.")
         google_api_key = get_secret_value(SECRET_NAME, "GOOGLE_API_KEY")
         if not google_api_key: return {"statusCode": 500, "body": json.dumps({"status": "error", "error_message": "API key config error (Google)."})}
-
-        # --- LLM Client Config ---
         try:
-             genai.configure(api_key=google_api_key)
-             model = genai.GenerativeModel(LLM_MODEL_NAME)
+             genai.configure(api_key=google_api_key); model = genai.GenerativeModel(LLM_MODEL_NAME)
         except Exception as configure_err:
-             # ... (existing error handling) ...
-             actual_error = str(configure_err)
-             logger.error(f"Gemini SDK config error: {actual_error}", exc_info=True)
+             actual_error = str(configure_err); logger.error(f"Gemini SDK config error: {actual_error}", exc_info=True)
              if "model not found" in actual_error.lower() or "invalid api key" in actual_error.lower(): return {"statusCode": 400, "body": json.dumps({"status": "error", "error_message": f"LLM config error: {actual_error}"})}
              else: return {"statusCode": 500, "body": json.dumps({"status": "error", "error_message": "LLM SDK configuration error."})}
 
-        # --- Construct LLM Prompt (Existing Prompt) ---
         known_styles_list = sorted([s.title() for s in KNOWN_STYLES])
         known_colors_list = sorted([c.title() for c in KNOWN_COLORS])
-        prompt = f"""Analyze the user query strictly within the given fashion context...
-        {user_query}"
+        prompt = f"""Analyze the user query strictly within the given fashion context.
+        Context:
+        - Category: "{category}"
+        - Country: "{country}"
+        - List of All Known Styles (global): {json.dumps(known_styles_list) if known_styles_list else "None Provided"}
+        - List of All Known Colors (global): {json.dumps(known_colors_list) if known_colors_list else "None Provided"}
+
+        User Query: "{user_query}"
 
         Instructions:
-        ... (Keep existing instructions 1-5) ...
+        1.  Identify the primary analysis task based on the User Query's intent. Choose ONE from: ['get_trend', 'get_forecast', 'get_recommendation', 'compare_items', 'summarize_category', 'summarize_mega_trends', 'qa_web_only', 'qa_internal_only', 'qa_combined', 'unknown']. **Prioritize 'summarize_mega_trends' if the query uses keywords like 'mega', 'hot', 'hottest', or 'rising trends' AND does not mention specific items/styles/colors.** Otherwise, determine intent based on keywords like 'forecast', 'recommend', 'compare', 'summarize category', 'trend', 'why', 'news', etc.
+        2.  Determine the necessary data sources required for the identified primary_task. Choose one or more from: ['internal_trends_category', 'internal_trends_item', 'internal_forecast', 'internal_mega', 'web_search', 'clarify']. Follow these rules STRICTLY:
+            -   Web Search Rule: You MUST include 'web_search' if the query explicitly asks 'why', mentions 'news', 'sentiment', 'competitors', 'web', 'web search', 'hot' trends, 'this week', 'global' trends, or clearly requires external context/reasoning.
+            -   Item Detail Rule: If step 3 identifies ANY subjects in `specific_known_subjects` AND the task requires item-level detail (like 'get_forecast', 'get_recommendation' for an item, 'compare_items', 'get_trend' for a specific item), you MUST include 'internal_trends_item'. You should ALSO include 'internal_forecast' if the primary_task is 'get_forecast'.
+            -   Category Context Rule: If the task is broad ('summarize_category', 'get_trend' for the whole category without specific items), use 'internal_trends_category'. ALSO, if the task is 'get_trend' or 'qa_combined' or 'qa_internal_only' or 'qa_web_only' and step 3 identifies items in `unmapped_items` but NOT in `specific_known_subjects`, you MUST include 'internal_trends_category' to provide context.
+            -   Mega Trends Rule: Use 'internal_mega' ONLY if the primary_task is 'summarize_mega_trends'. YOU MUST NOT include 'internal_mega' if any other internal source ('internal_trends_category', 'internal_trends_item', 'internal_forecast') is selected. Also (as checked in step 3), DO NOT use 'internal_mega' if step 3 identifies ANY subjects in `specific_known_subjects` OR `unmapped_items`.
+            -   Clarification Rule: If the query is too ambiguous, invalid, lacks specifics needed for the task (e.g., forecast without an item), or falls outside the Category/Country context, use ONLY 'clarify'.
+        3.  Extract key entities mentioned in the User Query. Apply these rules STRICTLY:
+            -   First, identify all potential fashion subjects (styles, colors, items like 'bomber jacket') in the query.
+            -   For EACH potential subject:
+                a. Check for an exact case-insensitive match in the 'All Known Styles' or 'All Known Colors' lists.
+                b. If a match IS found: Determine if it's a 'style' or 'color'. **If it's a 'color', add it directly** to the `specific_known_subjects` list as `{{"subject": "Matched Term Title Case", "type": "color"}}`. **If it's a 'style', THEN check if the matched style is appropriate** for the stated Category context (e.g., 'Dresses' style is inappropriate for 'Shirts' Category). If the style IS appropriate, add it to `specific_known_subjects` as `{{"subject": "Matched Term Title Case", "type": "style"}}`. If the style is NOT appropriate for the category, add the term (Title Case) to `unmapped_items`.
+                c. If NO exact match is found in the known lists: Add the term (Title Case) to the `unmapped_items` list.
+                d. DO NOT guess or find the 'closest' match. Only exact matches are processed for `specific_known_subjects`.
+            -   `specific_known_subjects`: List of objects for matched subjects (colors are always added if matched, styles only if matched AND category-appropriate). Can be empty.
+            -   `unmapped_items`: List of terms that were not exact matches, were category-inappropriate styles, or other potential fashion items. Can be empty. Use Title Case.
+            -   `timeframe_reference`: Any mention of time (e.g., "next 6 months", "latest"). Return null if none found.
+            -   `attributes`: Any other descriptors (e.g., "material:linen", "price:high"). Return [] if none found.
+        4.  Determine the overall 'status'. It MUST be 'needs_clarification' ONLY if 'clarify' is in `required_sources` OR if step 3 added items to `unmapped_items` because they were category-inappropriate styles that prevent analysis. Otherwise (even if 'web_search' is required or there are other `unmapped_items`), it MUST be 'success'.
+        5.  Provide a concise 'clarification_needed' message (string) ONLY if status is 'needs_clarification', otherwise it MUST be null. Explain *why* (e.g., "Style 'Dresses' is not applicable to the 'Shirts' category. Please specify a relevant style or remove it.", or "Query is too ambiguous...").
 
         Output ONLY a valid JSON object following this exact structure:
-        ... (Keep existing output structure) ...
+        {{
+          "status": "success | needs_clarification",
+          "primary_task": "string | null",
+          "required_sources": ["string", ...],
+          "query_subjects": {{
+            "specific_known": [ {{ "subject": "string (Title Case)", "type": "color | style" }} ],
+            "unmapped_items": ["string (Title Case)", ...]
+          }},
+          "timeframe_reference": "string | null",
+          "attributes": ["string", ...],
+          "clarification_needed": "string | null"
+        }}
         """
         logger.debug("Prompt constructed.")
-
-        # --- LLM Call ---
         logger.info(f"Calling LLM: {LLM_MODEL_NAME} for standard interpretation...")
         try:
             generation_config = genai.types.GenerationConfig(response_mime_type="application/json")
             response = model.generate_content(prompt, generation_config=generation_config)
-            logger.info("LLM response received.")
-            logger.debug(f"LLM Raw Response Text:\n{response.text}")
+            logger.info("LLM response received."); logger.debug(f"LLM Raw Response Text:\n{response.text}")
         except Exception as llm_err:
              logger.error(f"LLM API call failed: {llm_err}", exc_info=True)
              return {"statusCode": 502, "body": json.dumps({"status": "error", "error_message": f"LLM API call failed: {str(llm_err)}"})}
 
-        # --- LLM Response Parsing and Validation ---
         try:
-            # ... (Keep existing parsing and validation logic) ...
             cleaned_text = response.text.strip()
-            # ... (markdown fence removal) ...
+            if cleaned_text.startswith("```json"): cleaned_text = cleaned_text[7:]
+            if cleaned_text.endswith("```"): cleaned_text = cleaned_text[:-3]
+            cleaned_text = cleaned_text.strip()
             if not cleaned_text: raise ValueError("LLM returned empty response after cleaning markdown.")
             llm_output = json.loads(cleaned_text)
-            # ... (validation of keys and types) ...
 
-            # --- Post-LLM Source Rule Enforcement (Existing Logic) ---
+            required_keys = ["status", "primary_task", "required_sources", "query_subjects", "timeframe_reference", "attributes", "clarification_needed"]
+            missing_keys = [key for key in required_keys if key not in llm_output]
+            if missing_keys: raise ValueError(f"LLM output missing required keys: {', '.join(missing_keys)}.")
+            if not isinstance(llm_output.get("required_sources"), list): raise ValueError("LLM 'required_sources' not list.")
+            query_subjects_llm = llm_output.get("query_subjects") # Renamed for clarity
+            if not isinstance(query_subjects_llm, dict): raise ValueError("LLM 'query_subjects' not dict.")
+            if "specific_known" not in query_subjects_llm or "unmapped_items" not in query_subjects_llm: raise ValueError("LLM 'query_subjects' missing keys.")
+            if not isinstance(query_subjects_llm["unmapped_items"], list): raise ValueError("LLM 'unmapped_items' not list.")
+            specific_known_llm = query_subjects_llm["specific_known"] # Renamed for clarity
+            if not isinstance(specific_known_llm, list): raise ValueError("LLM 'specific_known' not list.")
+            for item in specific_known_llm:
+                if not isinstance(item, dict): raise ValueError(f"Item in 'specific_known' not dict: {item}")
+                if "subject" not in item or "type" not in item: raise ValueError(f"Item missing 'subject'/'type': {item}")
+                if item["type"] not in ["color", "style"]: raise ValueError(f"Invalid type '{item['type']}': {item}")
+                if not isinstance(item.get("subject"), str): raise ValueError(f"Subject not string: {item}")
+
+            # --- Fallback logic if LLM returns None/unknown for primary_task/status for standard queries ---
+            current_task = llm_output.get("primary_task")
+            current_status = llm_output.get("status")
+            current_sources = llm_output.get("required_sources", [])
+
+            if (current_task is None or current_task == "unknown") and \
+               (current_status is None or current_status not in ["success", "needs_clarification"]) and \
+               not query_subjects_llm.get("specific_known") and not query_subjects_llm.get("unmapped_items"):
+                logger.warning("LLM failed to classify a general category query. Applying fallback.")
+                llm_output["primary_task"] = "summarize_category"
+                llm_output["required_sources"] = ["internal_trends_category"]
+                llm_output["status"] = "success"
+                llm_output["clarification_needed"] = None
+                # Ensure other expected keys are present even if LLM missed them
+                if "query_subjects" not in llm_output: llm_output["query_subjects"] = {"specific_known": [], "unmapped_items": []}
+                if "timeframe_reference" not in llm_output: llm_output["timeframe_reference"] = None
+                if "attributes" not in llm_output: llm_output["attributes"] = []
+            # --- End Fallback ---
+
+
+            # --- Post-LLM Source Rule Enforcement ---
             primary_task_llm = llm_output.get("primary_task")
-            required_sources_llm = llm_output.get("required_sources", [])
-            # ... (rest of existing post-processing and mutual exclusivity rules) ...
-            llm_output["required_sources"] = sorted(list(set(required_sources_llm))) # Example from prev code
-            # ... (status consistency checks) ...
+            required_sources_set = set(llm_output.get("required_sources", [])) # Use the potentially modified sources
+            unmapped_items_llm = llm_output.get("query_subjects", {}).get("unmapped_items", [])
+            specific_known_llm = llm_output.get("query_subjects", {}).get("specific_known", [])
+
+
+            if primary_task_llm == "summarize_mega_trends":
+                if "internal_mega" not in required_sources_set:
+                    logger.warning("Post-LLM: Adding 'internal_mega' for summarize_mega_trends.")
+                    required_sources_set.add("internal_mega")
+                # Ensure category and web for mega trends (if this is where it should be decided)
+                # Based on previous, we decided mega trends also needs category context and web
+                # required_sources_set.add("internal_trends_category")
+                # required_sources_set.add("web_search")
+
+            if primary_task_llm in ["get_trend", "qa_combined", "qa_internal_only", "qa_web_only"] and \
+               not specific_known_llm and unmapped_items_llm and \
+               "internal_trends_category" not in required_sources_set:
+                logger.warning("Post-LLM: Adding 'internal_trends_category' for context.")
+                required_sources_set.add("internal_trends_category")
+
+            if specific_known_llm or unmapped_items_llm:
+                if "internal_mega" in required_sources_set and primary_task_llm != "summarize_mega_trends": # Don't remove if it IS mega_trends
+                    logger.warning("Post-LLM: Removing 'internal_mega' (non-mega task with subjects).")
+                    required_sources_set.discard("internal_mega")
+                    if not required_sources_set: required_sources_set.add("internal_trends_category"); logger.warning("Post-LLM: Added fallback 'internal_trends_category'.")
+
+            has_mega = "internal_mega" in required_sources_set
+            has_other_internal = any(s in required_sources_set for s in ["internal_trends_category", "internal_trends_item", "internal_forecast"])
+
+            if primary_task_llm != "summarize_mega_trends" and has_mega and has_other_internal : # Only apply if not mega trends task
+                 logger.warning("Post-LLM: Enforcing mega exclusivity for non-mega task.")
+                 required_sources_set.discard("internal_mega")
+                 logger.warning("Post-LLM: Removed 'internal_mega'.")
+            elif primary_task_llm == "summarize_mega_trends" and has_other_internal: # If mega_trends, remove other internal
+                 logger.warning("Post-LLM: Mega task, removing other conflicting internal sources.")
+                 required_sources_set.discard("internal_trends_category")
+                 required_sources_set.discard("internal_trends_item")
+                 required_sources_set.discard("internal_forecast")
+                 # Ensure web_search is present for mega trends
+                 if "web_search" not in required_sources_set:
+                      logger.warning("Post-LLM: Adding 'web_search' for summarize_mega_trends as it was missing.")
+                      required_sources_set.add("web_search")
+
+
+            llm_output["required_sources"] = sorted(list(required_sources_set))
+
+            if "clarify" in llm_output.get("required_sources", []) and llm_output.get("status") != "needs_clarification":
+                logger.warning("Post-LLM: Forcing 'needs_clarification' due to 'clarify' source.")
+                llm_output["status"] = "needs_clarification"
+            if llm_output.get("status") == "needs_clarification" and not llm_output.get("clarification_needed"):
+                 logger.warning("Post-LLM: Adding generic clarification message.")
+                 llm_output["clarification_needed"] = "Query requires clarification. Please be more specific."
 
             logger.info(f"LLM interpretation successful (post-processed). Task: {llm_output.get('primary_task')}, Status: {llm_output.get('status')}, Sources: {llm_output.get('required_sources')}")
-            llm_output['original_context'] = {'category': category, 'country': country, 'query': user_query}
+            llm_output['original_context'] = original_context_payload # Use the one defined at the start
             return { "statusCode": 200, "body": json.dumps(llm_output) }
 
-        # --- Error Handling ---
         except (json.JSONDecodeError, ValueError, TypeError) as e:
              logger.error(f"Failed parsing/validating LLM response: {e}", exc_info=True); logger.error(f"LLM Raw Text was: {response.text}")
              return { "statusCode": 500, "body": json.dumps({"status": "error", "error_message": f"Failed processing LLM response: {e}", "llm_raw_output": response.text}) }
