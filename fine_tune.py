@@ -3,16 +3,16 @@ from openai import OpenAI
 
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY=")) # Use env var
 
-# train_file = client.files.create(
-#   file=open("/Users/ghavamnabavi/Documents/llm_dataset/fashion_llm.jsonl", "rb"),
-#   purpose="fine-tune"
-# )
-# validation_file = client.files.create(
-#   file=open("/Users/ghavamnabavi/Documents/llm_dataset/fashion_llm.jsonl", "rb"),
-#   purpose="fine-tune"
-# )
-# print(f"Train File ID: {train_file.id}")
-# print(f"Validation File ID: {validation_file.id}")
+train_file = client.files.create(
+  file=open("/Users/ghavamnabavi/Documents/llm_dataset/fashion_llm.jsonl", "rb"),
+  purpose="fine-tune"
+)
+validation_file = client.files.create(
+  file=open("/Users/ghavamnabavi/Documents/llm_dataset/fashion_llm.jsonl", "rb"),
+  purpose="fine-tune"
+)
+print(f"Train File ID: {train_file.id}")
+print(f"Validation File ID: {validation_file.id}")
 #
 # job = client.fine_tuning.jobs.create(
 #   training_file=train_file.id,
@@ -25,10 +25,9 @@ client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY=")) # Use env var
 
 # # # client.fine_tuning.jobs.list(limit=10)
 # job_details=client.fine_tuning.jobs.list(limit=10)
-job_details=client.fine_tuning.jobs.retrieve("ftjob-fUwnsYpcgOLFSMCqnQziWKUX")
-# #
-# #
-print(job_details)
+# job_details=client.fine_tuning.jobs.retrieve("ftjob-fUwnsYpcgOLFSMCqnQziWKUX")
+#
+# print(job_details)
 
 # completion = client.chat.completions.create(
 #     model="ft:gpt-4o-mini-2024-07-18:personal::BSXLgDMa",
